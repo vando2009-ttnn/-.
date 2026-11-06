@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đấu Trường Tri Thức - Game Show</title>
+<style>
+:root{--bg:#0b1024;--panel:#151d3b;--panel2:#1d2850;--gold:#ffd166;--cyan:#59d8ff;--white:#f5f7ff;--muted:#aab4d6;--green:#52d6a0;--red:#ff7185}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:radial-gradient(circle at top,#25366e 0,#101936 42%,#080d1d 100%);color:var(--white);min-height:100vh}
+header{padding:22px 16px;text-align:center;border-bottom:1px solid #ffffff18;background:#080d1d88}
+header h1{margin:0;color:var(--gold);font-size:clamp(24px,5vw,38px);letter-spacing:1px}header p{margin:8px 0 0;color:var(--muted)}
+main{width:min(1050px,94%);margin:28px auto}.card{background:linear-gradient(145deg,#1a2548,#111a36);border:1px solid #ffffff20;border-radius:18px;padding:24px;box-shadow:0 18px 45px #0005;margin-bottom:18px}
+h2{margin-top:0;color:var(--cyan)}label{display:block;color:var(--muted);margin:12px 0 6px}input,select{width:100%;padding:13px;border-radius:10px;border:1px solid #50608e;background:#0c1530;color:white;font-size:16px}
+button{border:0;border-radius:10px;padding:12px 17px;background:var(--gold);color:#20233a;font-weight:bold;font-size:15px;cursor:pointer;margin:5px}button:hover{filter:brightness(1.08);transform:translateY(-1px)}button.secondary{background:#35436f;color:white}button.danger{background:var(--red);color:#24101a}button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.row>*{flex:1}.hidden{display:none!important}.muted{color:var(--muted)}.pill{display:inline-block;padding:7px 11px;border-radius:30px;background:#ffffff14;color:var(--gold);font-size:13px;margin:3px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.option{display:block;text-align:left;width:100%;background:#26345f;color:white;border:1px solid #536596;padding:15px;margin:7px 0;border-radius:12px}.option.selected{outline:2px solid var(--gold);background:#394978}.option.correct{background:#145b48}.option.wrong{background:#713347}
+.progress{height:10px;background:#303b61;border-radius:20px;overflow:hidden;margin:12px 0}.progress span{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--gold));width:0}
+.stat{background:#ffffff0c;border-radius:12px;padding:14px;text-align:center}.stat strong{display:block;font-size:25px;color:var(--gold);margin-bottom:4px}
+table{width:100%;border-collapse:collapse}th,td{padding:11px;text-align:left;border-bottom:1px solid #ffffff18}th{color:var(--cyan)}
+.notice{padding:14px;border-radius:12px;background:#20345a;color:#dbe8ff;margin:12px 0}
+footer{text-align:center;color:#8793b8;padding:20px;font-size:13px}
+@media(max-width:620px){.grid{grid-template-columns:1fr}.card{padding:17px}.row{display:block}.row button{width:100%}th,td{padding:8px;font-size:13px}}
+</style>
+</head>
+<body>
+<header><h1>🏆 ĐẤU TRƯỜNG TRI THỨC</h1><p>Game show kiến thức • 4 vòng thi • 40 câu hỏi</p></header>
+<main>
+<section id="login" class="card">
+<h2>Đăng nhập chương trình</h2>
+<div class="row">
+<div><label for="role">Bạn là</label><select id="role"><option value="player">Thí sinh</option><option value="admin">Quản trị viên (Admin)</option></select></div>
+<div><label for="displayName">Tên đăng nhập / Tên thí sinh</label><input id="displayName" placeholder="Nhập tên của bạn"></div>
+</div>
+<div id="adminPassWrap" class="hidden"><label for="adminPass">Mật khẩu Admin</label><input id="adminPass" type="password" placeholder="Mật khẩu mặc định: 1234"></div>
+<button id="loginBtn">Vào chương trình</button>
+<p class="muted">Bản chạy thử trên một trình duyệt. Admin và thí sinh có thể mở nhiều tab trên cùng thiết bị để thử.</p>
+</section>
+
+<section id="waiting" class="card hidden">
+<h2>⏳ Phòng chờ thí sinh</h2>
+<p id="welcome"></p><div class="notice">Bạn đã vào phòng chờ. Hãy giữ trang này mở và chờ Admin bắt đầu vòng thi.</div>
+<div class="pill" id="waitStatus">Chương trình chưa bắt đầu</div>
+</section>
+
+<section id="player" class="hidden">
+<div class="card">
+<div class="row"><div><span class="pill" id="roundLabel">Vòng 1</span><span class="pill" id="qLabel">Câu 1/10</span></div><div style="text-align:right" id="scoreLabel">Điểm: 0</div></div>
+<div class="progress"><span id="playerProgress"></span></div>
+<h2 id="questionText">Câu hỏi</h2>
+<div id="answers"></div>
+<p id="answerFeedback" class="muted"></p>
+</div>
+</section>
+
+<section id="admin" class="hidden">
+<div class="card">
+<h2>🛠 Bảng điều khiển Admin</h2>
+<div class="grid">
+<div class="stat"><strong id="adminRound">0/4</strong>Vòng hiện tại</div>
+<div class="stat"><strong id="adminQuestion">0/10</strong>Câu hỏi</div>
+<div class="stat"><strong id="adminPlayers">0</strong>Thí sinh</div>
+<div class="stat"><strong id="adminAnswered">0</strong>Đã trả lời câu này</div>
+</div>
+<div class="row" style="margin-top:15px">
+<button id="startBtn">Bắt đầu / Bắt đầu vòng</button>
+<button class="secondary" id="nextBtn">Câu tiếp theo →</button>
+<button class="secondary" id="revealBtn">Hiện đáp án</button>
+<button class="danger" id="resetBtn">Đặt lại chương trình</button>
+</div>
+<p id="adminMessage" class="notice">Chương trình đang ở trạng thái chờ.</p>
+</div>
+<div class="card"><h2>👀 Quan sát thí sinh</h2><div style="overflow-x:auto"><table><thead><tr><th>Thí sinh</th><th>Trạng thái</th><th>Điểm</th><th>Đáp án</th></tr></thead><tbody id="playerRows"><tr><td colspan="4">Chưa có thí sinh.</td></tr></tbody></table></div></div>
+</section>
+</main>
+<footer>Đấu Trường Tri Thức • Giao diện mẫu chạy bằng HTML, CSS và JavaScript</footer>
+<script>
+const quiz=[
+[
+["Thủ đô của Việt Nam là thành phố nào?",["Hà Nội","Huế","Đà Nẵng","TP. Hồ Chí Minh"],0],
+["Một tuần có bao nhiêu ngày?",["5","6","7","8"],2],
+["Hành tinh nào được gọi là Hành tinh Đỏ?",["Sao Kim","Sao Hỏa","Sao Mộc","Sao Thổ"],1],
+["5 × 6 bằng bao nhiêu?",["25","30","35","40"],1],
+["Loài vật nào thường được gọi là chúa sơn lâm?",["Voi","Hổ","Gấu","Sư tử biển"],1],
+["Nước đóng băng ở khoảng bao nhiêu độ C?",["0","10","50","100"],0],
+["Quốc kỳ Việt Nam có nền màu gì?",["Xanh","Trắng","Đỏ","Vàng"],2],
+["Đại dương lớn nhất thế giới là?",["Ấn Độ Dương","Đại Tây Dương","Bắc Băng Dương","Thái Bình Dương"],3],
+["Hình có 3 cạnh gọi là gì?",["Hình vuông","Tam giác","Hình tròn","Hình chữ nhật"],1],
+["Ngày Quốc khánh Việt Nam là ngày nào?",["30/4","1/5","2/9","20/11"],2]
+],
+[
+["Tác giả Truyện Kiều là ai?",["Nguyễn Du","Nguyễn Trãi","Hồ Xuân Hương","Nam Cao"],0],
+["Chất khí cần thiết cho sự hô hấp của con người là?",["Nitơ","Oxi","Cacbonic","Hiđro"],1],
+["Kết quả của 12² là?",["124","144","122","164"],1],
+["Châu lục có diện tích lớn nhất là?",["Châu Phi","Châu Âu","Châu Á","Châu Đại Dương"],2],
+["Đơn vị đo cường độ dòng điện là?",["Vôn","Ampe","Oát","Mét"],1],
+["Từ nào là từ đồng nghĩa với “siêng năng”?",["Lười biếng","Chăm chỉ","Nóng nảy","Vội vàng"],1],
+["Cơ quan bơm máu đi khắp cơ thể là?",["Phổi","Gan","Tim","Thận"],2],
+["Một năm thường có bao nhiêu tháng?",["10","11","12","13"],2],
+["Kim loại nào ở thể lỏng trong điều kiện thường?",["Sắt","Đồng","Thủy ngân","Nhôm"],2],
+["Ai là người đọc bản Tuyên ngôn Độc lập ngày 2/9/1945?",["Võ Nguyên Giáp","Hồ Chí Minh","Phạm Văn Đồng","Tôn Đức Thắng"],1]
+],
+[
+["Ký hiệu hóa học của vàng là?",["Ag","Au","Fe","Cu"],1],
+["Đỉnh núi cao nhất thế giới là?",["K2","Everest","Fansipan","Kilimanjaro"],1],
+["Tổng ba góc trong một tam giác bằng?",["90°","180°","270°","360°"],1],
+["Tác phẩm “Lão Hạc” của nhà văn nào?",["Nam Cao","Ngô Tất Tố","Kim Lân","Thạch Lam"],0],
+["Thiết bị nào dùng để đo nhiệt độ?",["Nhiệt kế","Tốc kế","Ampe kế","Cân"],0],
+["Quốc gia nào có hình dáng thường được ví như chiếc ủng?",["Pháp","Ý","Đức","Tây Ban Nha"],1],
+["Trong máy tính, CPU thường được gọi là gì?",["Bộ nhớ ngoài","Bộ xử lý trung tâm","Màn hình","Bàn phím"],1],
+["Số nguyên tố nhỏ nhất là?",["0","1","2","3"],2],
+["Cây xanh hấp thụ khí nào trong quang hợp?",["Oxi","Cacbonic","Hiđro","Nitơ"],1],
+["Ngôn ngữ chính thức của Brazil là?",["Tây Ban Nha","Anh","Bồ Đào Nha","Pháp"],2]
+],
+[
+["Tốc độ ánh sáng trong chân không xấp xỉ?",["300.000 km/s","30.000 km/s","3.000 km/s","300 km/s"],0],
+["Ai viết tác phẩm “Bình Ngô đại cáo”?",["Nguyễn Du","Nguyễn Trãi","Lê Thánh Tông","Trần Hưng Đạo"],1],
+["Phản ứng hóa học tạo ra chất mới được gọi là?",["Sự nóng chảy","Sự bay hơi","Phản ứng hóa học","Sự đông đặc"],2],
+["Đồng bằng lớn nhất Việt Nam là?",["Đồng bằng sông Hồng","Đồng bằng sông Cửu Long","Đồng bằng Thanh Hóa","Đồng bằng Nghệ An"],1],
+["Hệ điều hành phổ biến trên điện thoại iPhone là?",["Android","Windows","iOS","Linux"],2],
+["Nếu x + 7 = 15 thì x bằng?",["6","7","8","9"],2],
+["Loài động vật nào là động vật có vú?",["Cá mập","Ếch","Cá heo","Cá sấu"],2],
+["Ngày Nhà giáo Việt Nam là?",["20/10","20/11","22/12","8/3"],1],
+["Nguồn năng lượng tái tạo là?",["Than đá","Dầu mỏ","Năng lượng mặt trời","Khí tự nhiên"],2],
+["Tác phẩm “Dế Mèn phiêu lưu ký” do ai sáng tác?",["Tô Hoài","Tố Hữu","Xuân Diệu","Vũ Trọng Phụng"],0]
+]
+];
+const $=id=>document.getElementById(id);
+let role="player",name="",state=loadState(),selected=null;
+function loadState(){try{return JSON.parse(localStorage.getItem("showState"))||{started:false,round:-1,q:-1,revealed:false,players:{}}}catch(e){return {started:false,round:-1,q:-1,revealed:false,players:{}}}}
+function save(){localStorage.setItem("showState",JSON.stringify(state));renderAll()}
+function show(id){["login","waiting","player","admin"].forEach(x=>$(x).classList.toggle("hidden",x!==id))}
+$("role").onchange=()=> $("adminPassWrap").classList.toggle("hidden",$("role").value!=="admin");
+$("loginBtn").onclick=()=>{
+ role=$("role").value;name=$("displayName").value.trim();
+ if(!name){alert("Vui lòng nhập tên.");return}
+ if(role==="admin"){
+  if($("adminPass").value!=="1234"){alert("Mật khẩu chưa đúng. Mật khẩu mẫu là 1234.");return}
+  show("admin");renderAll();
+ }else{
+  if(!state.players[name])state.players[name]={score:0,answers:{},online:true};
+  state.players[name].online=true;save();$("welcome").textContent="Xin chào "+name+"!";show("waiting");renderAll();
+ }
+};
+function currentKey(){return state.round+"-"+state.q}
+function renderAll(){
+ if(role==="admin")renderAdmin();
+ if(role==="player"&&name){
+  if(!state.started){show("waiting");$("waitStatus").textContent="Đang chờ Admin bắt đầu";return}
+  if(state.round>=4){show("waiting");$("waitStatus").textContent="Chương trình đã kết thúc. Cảm ơn bạn đã tham gia!";return}
+  show("player");renderQuestion();
+ }
+}
+function renderQuestion(){
+ const item=quiz[state.round][state.q],p=state.players[name],answer=p.answers[currentKey()];
+ $("roundLabel").textContent="Vòng "+(state.round+1);$("qLabel").textContent="Câu "+(state.q+1)+"/10";
+ $("scoreLabel").textContent="Điểm: "+p.score;
+ $("playerProgress").style.width=((state.q+1)/10*100)+"%";
+ $("questionText").textContent=item[0];$("answers").innerHTML="";
+ item[1].forEach((a,i)=>{
+  const b=document.createElement("button");b.className="option";b.textContent=String.fromCharCode(65+i)+". "+a;
+  if(answer!==undefined&&answer===i)b.classList.add("selected");
+  if(state.revealed&&i===item[2])b.classList.add("correct");
+  if(state.revealed&&answer===i&&answer!==item[2])b.classList.add("wrong");
+  b.disabled=answer!==undefined||state.revealed;b.onclick=()=>submitAnswer(i);$("answers").appendChild(b);
+ });
+ $("answerFeedback").textContent=state.revealed?(answer===undefined?"Bạn chưa trả lời.":answer===item[2]?"Chính xác!":"Đáp án chưa đúng."):(answer!==undefined?"Bạn đã gửi đáp án. Hãy chờ câu tiếp theo.":"Chọn một đáp án để gửi.");
+}
+function submitAnswer(i){
+ const p=state.players[name];if(p.answers[currentKey()]!==undefined||state.revealed)return;
+ p.answers[currentKey()]=i;if(i===quiz[state.round][state.q][2])p.score+=10;save();
+}
+function renderAdmin(){
+ $("adminRound").textContent=state.round<0?"0/4":Math.min(state.round+1,4)+"/4";
+ $("adminQuestion").textContent=state.q<0?"0/10":(state.q+1)+"/10";
+ $("adminPlayers").textContent=Object.keys(state.players).length;
+ const answered=Object.values(state.players).filter(p=>p.answers[currentKey()]!==undefined).length;
+ $("adminAnswered").textContent=state.started?answered:0;
+ $("startBtn").disabled=state.started&&state.round<4;
+ $("nextBtn").disabled=!state.started||state.round>=4;
+ $("revealBtn").disabled=!state.started||state.revealed;
+ $("adminMessage").textContent=!state.started?"Chương trình đang chờ bắt đầu.":state.round>=4?"Đã hoàn thành cả 4 vòng thi.":`Đang diễn ra vòng ${state.round+1}, câu ${state.q+1}. ${state.revealed?"Đáp án đã được công bố.":"Đang nhận câu trả lời."}`;
+ const rows=Object.entries(state.players);
+ $("playerRows").innerHTML=rows.length?"":"<tr><td colspan='4'>Chưa có thí sinh.</td></tr>";
+ rows.forEach(([n,p])=>{
+  const ans=p.answers[currentKey()];const tr=document.createElement("tr");
+  [n,"Đã vào phòng",p.score,ans===undefined?"Chưa trả lời":String.fromCharCode(65+ans)].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td)});
+  $("playerRows").appendChild(tr);
+ });
+}
+$("startBtn").onclick=()=>{
+ if(state.round<0){state.round=0;state.q=0}else if(state.round>=4)return;
+ state.started=true;state.revealed=false;save();
+};
+$("nextBtn").onclick=()=>{
+ if(!state.started)return;
+ if(state.q<9)state.q++;
+ else if(state.round<3){state.round++;state.q=0}
+ else{state.round=4;state.started=true}
+ state.revealed=false;save();
+};
+$("revealBtn").onclick=()=>{state.revealed=true;save()};
+$("resetBtn").onclick=()=>{
+ if(!confirm("Xóa kết quả và bắt đầu chương trình mới?"))return;
+ state={started:false,round:-1,q:-1,revealed:false,players:{}};save();show("admin");
+};
+window.addEventListener("storage",e=>{if(e.key==="showState"){state=loadState();renderAll()}});
+</script>
+</body>
+</html>
